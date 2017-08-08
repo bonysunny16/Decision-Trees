@@ -1,0 +1,102 @@
+###### Classification Tree #################################
+
+## ISLR lib for the data set used here
+#install.packages("ISLR")
+#install.packages("tree")
+
+library(ISLR)
+library(tree)
+
+attach(Carseats)
+# To get the range of Sales (max and min)
+range(Sales)
+# Making a categorical variable sales
+High = ifelse(Sales >= 8,"Yes","No")
+
+Carseats = data.frame(Carseats,High)
+Carseats = Carseats[,-1]
+
+## Splitting the data in to train and test dataset
+set.seed(100)
+train <- sample(1:nrow(Carseats),nrow(Carseats)/2)
+
+training_data <- Carseats[train,]
+test_data <- Carseats[-train,]
+test_High <- test_data$High
+## Fit the treemodel using the training data
+
+tree_model <- tree(High ~.,training_data)
+plot (tree_model)
+text(tree_model, pretty = 0)
+## Predict the model to the testing data
+
+predict_Car <- predict(tree_model,test_data,type="class")
+mean(predict_Car!=test_High) ## 30.5% error in prediction
+
+### Pruning the model to get a better model
+
+## Cross validation to check where to stop pruning
+
+set.seed(10)
+
+cv_tree <- cv.tree(tree_model,FUN = prune.misclass)
+
+plot(cv_tree$size,cv_tree$dev,type="b")
+
+## The error is minuimum for size = 4
+### Prune the tree
+prune_model = prune.misclass(tree_model,best=4)
+
+plot(prune_model)
+text(prune_model,pretty = 0)
+
+## predicting using pruned model
+
+predict_pruned_data <- predict(prune_model,test_data,type="class")
+
+mean(predict_pruned_data!=test_High) #28% error
+
+################### Decision Tree using R part package ################
+
+#install.packages("rpart")
+#install.packages("rpart.plot")
+
+library(rpart)
+library(rpart.plot)
+
+fit <- rpart(High~., method="class",data=training_data)
+plot(fit)
+text(fit,pretty = 0)
+
+
+predict_fit1 <- predict(fit,test_data,type="class")
+mean(predict_fit1!=test_High) ## 30.5% error in prediction
+
+############### Regression Tree using rpart#############################
+fit1 <- rpart(Mileage~.,method="anova", data=cu.summary)
+printcp(fit1) # display the results 
+summary(fit1) # detailed summary of splits
+
+### Plotting the fit
+
+rpart.plot(fit1,type=3,digits=3,fallen.leaves=TRUE)
+
+############  Random forests  ###########################################
+#install.packages("randomForest")
+#install.packages("party")
+#install.packages("readingSkills")
+
+# Load the party package. It will automatically load other required packages.
+library(party)
+library(randomForest)
+
+# Create the forest.
+output.forest <- randomForest(nativeSpeaker ~ age + shoeSize + score, 
+                              data = readingSkills)
+
+# View the forest results.
+print(output.forest) 
+
+# Importance of each predictor.
+print(importance(output.forest,type = 2)) 
+
